@@ -2,11 +2,13 @@ Protocol
 ================
 Salim Damerdji
 
-Prior to using this protocol, the experimenter should already have R, Python, and the IAT GUI downloaded. Also, the experimenter should have decided on a sample size n (which must be a multiple of 8 to yield a balanced dataset) and have access to n volunteers.
+### A Word on Setup
 
-**Note:** The instructions below are maximalist in nature so that the experiment is conducted the same way no matter who runs it or when. This prevents any systematic unplanned variability from potentially biasing the results.
+Prior to using this protocol, the experimenter should already have R, Python, and the IAT GUI downloaded. Also, the experimenter should have decided on a sample size n (which must be some multiple of 8 to yield a balanced dataset) and have access to n volunteers.
 
 ### How to Run the Experiment
+
+**Note:** The instructions below are maximalist in nature so that the experiment is conducted the same way no matter who runs it or when. This prevents any systematic unplanned variability from potentially biasing the results.
 
 1.  In R, run the command sample(rep(1:4, n/8)), where n is the total sample size. You'll get a list of size n/2 where each number indicates which of the four treatments to administer to a given subject. Write down this result. Call this result the male treatment order.
 
