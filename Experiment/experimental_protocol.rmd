@@ -1,7 +1,7 @@
 ---
 title: "Protocol"
 author: "Salim Damerdji"
-output: html_document
+output: rmarkdown::github_document
 ---
 
 Prior to using this protocol, the experimenter should already have R, Python, and the IAT GUI downloaded. Also, the experimenter should have decided on a sample size n (which must be a multiple of 8 to yield a balanced dataset) and have access to n volunteers.
