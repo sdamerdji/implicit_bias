@@ -37,6 +37,6 @@ Prior to using this protocol, the experimenter should already have R, Python, an
 
 13. The computer program will have output one csv file in the folder containing the IAT GUI. The csv file has columns for the treatment applied, the subject's gender, the responses measured, and the start time for each experimental run.
 
-\*\* Ammendum \*\*
+**Ammendum**
 
 If you use multiple computers to run the experiment, modify the above instructions by randomizing which open computer a subject uses to take the test. Also, give the resulting csv file a name that indicates which laptop was used for the experiment.
