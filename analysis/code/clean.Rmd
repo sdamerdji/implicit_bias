@@ -64,12 +64,12 @@ We can balance this dataset by removing extraneous observations. I can do this b
 Someone else might prefer to remove observations according to some metric that would improve power. For example, they could remove the noisiest subjects. But I worry this approach would introduce bias. It's more neutral to merely removing the subjects who took the experiment last.
 
 ```{r balance}
-(balanced <- merged_unbalanced %>% 
+balanced <- merged_unbalanced %>% 
   group_by(factor, gender) %>%
   top_n(n=6, wt=time) %>%
   ungroup() %>%
   arrange(time) %>%
-  mutate(subject_id = 1:48))
+  mutate(subject_id = 1:48)
 ```
 
 #### Tidy the Data

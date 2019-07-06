@@ -68,45 +68,13 @@ We can balance this dataset by removing extraneous observations. I can do this b
 Someone else might prefer to remove observations according to some metric that would improve power. For example, they could remove the noisiest subjects. But I worry this approach would introduce bias. It's more neutral to merely removing the subjects who took the experiment last.
 
 ``` r
-(balanced <- merged_unbalanced %>% 
+balanced <- merged_unbalanced %>% 
   group_by(factor, gender) %>%
   top_n(n=6, wt=time) %>%
   ungroup() %>%
   arrange(time) %>%
-  mutate(subject_id = 1:48))
+  mutate(subject_id = 1:48)
 ```
-
-    ## # A tibble: 48 x 75
-    ##    time  factor gender stage1_0 stage1_1 stage1_2 stage1_3 stage1_4
-    ##    <S3:>  <int> <fct>     <dbl>    <dbl>    <dbl>    <dbl>    <dbl>
-    ##  1 10:3~      3 Male       1.94    1.11     1.55     1.25     0.694
-    ##  2 10:3~      3 Female     4.45    1.23     0.945    1.10     0.947
-    ##  3 10:4~      2 Female     1.88    1.09     0.819    0.946    1.35 
-    ##  4 10:4~      4 Female    28.4     2.70    13.6      2.24     1.51 
-    ##  5 10:5~      1 Male       1.42    1.27     1.12     2.07     1.15 
-    ##  6 11:4~      4 Male       1.83    0.942    0.720    0.663    0.933
-    ##  7 12:0~      4 Female     4.41    3.43     1.32     1.03     0.710
-    ##  8 12:1~      3 Male       1.67    0.831    2.03     0.723    0.900
-    ##  9 12:1~      4 Male       6.29    2.63     1.33     1.02     1.60 
-    ## 10 12:1~      1 Female     1.51    0.717    1.34     0.798    0.768
-    ## # ... with 38 more rows, and 67 more variables: stage1_5 <dbl>,
-    ## #   stage1_6 <dbl>, stage1_7 <dbl>, stage1_8 <dbl>, stage1_9 <dbl>,
-    ## #   stage2_0 <dbl>, stage2_1 <dbl>, stage2_2 <dbl>, stage2_3 <dbl>,
-    ## #   stage2_4 <dbl>, stage2_5 <dbl>, stage2_6 <dbl>, stage2_7 <dbl>,
-    ## #   stage2_8 <dbl>, stage2_9 <dbl>, stage3_0 <dbl>, stage3_1 <dbl>,
-    ## #   stage3_2 <dbl>, stage3_3 <dbl>, stage3_4 <dbl>, stage3_5 <dbl>,
-    ## #   stage3_6 <dbl>, stage3_7 <dbl>, stage3_8 <dbl>, stage3_9 <dbl>,
-    ## #   stage3_10 <dbl>, stage3_11 <dbl>, stage3_12 <dbl>, stage3_13 <dbl>,
-    ## #   stage3_14 <dbl>, stage3_15 <dbl>, stage3_16 <dbl>, stage3_17 <dbl>,
-    ## #   stage3_18 <dbl>, stage3_19 <dbl>, stage4_0 <dbl>, stage4_1 <dbl>,
-    ## #   stage4_2 <dbl>, stage4_3 <dbl>, stage4_4 <dbl>, stage4_5 <dbl>,
-    ## #   stage4_6 <dbl>, stage4_7 <dbl>, stage4_8 <dbl>, stage4_9 <dbl>,
-    ## #   stage5_0 <dbl>, stage5_1 <dbl>, stage5_2 <dbl>, stage5_3 <dbl>,
-    ## #   stage5_4 <dbl>, stage5_5 <dbl>, stage5_6 <dbl>, stage5_7 <dbl>,
-    ## #   stage5_8 <dbl>, stage5_9 <dbl>, stage5_10 <dbl>, stage5_11 <dbl>,
-    ## #   stage5_12 <dbl>, stage5_13 <dbl>, stage5_14 <dbl>, stage5_15 <dbl>,
-    ## #   stage5_16 <dbl>, stage5_17 <dbl>, stage5_18 <dbl>, stage5_19 <dbl>,
-    ## #   cp <dbl>, subject_id <int>
 
 #### Tidy the Data
 
