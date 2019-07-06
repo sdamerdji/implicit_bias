@@ -1,0 +1,271 @@
+---
+title: "combine_158_results"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+library(tibble)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(chron)
+```
+
+# Data Cleaning
+## Load Data
+```{r}
+get_iat_tibble <- function(file_name, cp_num){
+  df <- read.csv(file_name) %>%
+    as_tibble() %>%
+    select_if(function(x) !(all(is.na(x)) | all(x==""))) %>%
+    na.omit() %>%
+    mutate(cp = cp_num)
+  return(df)
+}
+
+aj1 <- get_iat_tibble('./RESULTS_aj_1.csv', 1)
+aj2 <- get_iat_tibble('./RESULTS_aj_2.csv', 1)
+rb1 <- get_iat_tibble('./RESULTS_rb_1.csv', 2)
+rb2 <- get_iat_tibble('./RESULTS_rb_2.csv', 2)
+rb3 <- get_iat_tibble('./RESULTS_rb_3.csv', 2)
+sd1 <- get_iat_tibble('./RESULTS_sd_1.csv', 3)
+sd2 <- get_iat_tibble('./RESULTS_sd_2.csv', 3)
+
+
+sd1 <- sd1 %>% rename_at(vars(contains('X')), funs(sub('X', 'stage', .)))
+colnames(aj1) <- colnames(sd1)
+colnames(aj2) <- colnames(sd1)
+colnames(rb1) <- colnames(sd1)
+colnames(rb2) <- colnames(sd1)
+colnames(rb3) <- colnames(sd1)
+colnames(sd2) <- colnames(sd1)
+```
+
+## Remove extraneous observations so we have a balanced dataset
+```{r tidy_balance}
+unbalanced <- rbind(aj1,aj2,rb1,rb2,rb3,sd1,sd2) %>%
+  mutate(time = chron(times = time))
+
+# We have an imbalanced dataset
+unbalanced %>%
+  group_by(gender, factor) %>%
+  count()
+
+# Take only 6 subjects per treatment/block combination. If a treatment/block 
+# combination k subjects, where k>6, remove the k-6 subjects who took
+# the experiment last. This is a neutral approach that does not meddle
+# with the randomization.
+balanced <- unbalanced %>% 
+  group_by(factor, gender) %>%
+  top_n(n=6, wt=time) %>%
+  ungroup() %>%
+  arrange(time) %>%
+  mutate(subject_id = 1:48)
+
+# Tidy the dataset, in the Hadley Wickham sense of 'tidy', not the Kon Mari sense
+tidy_balanced <- balanced %>%
+  select(subject_id, cp, time, factor, gender, everything()) %>%
+  gather(key = 'trial', value = 'response', 6:75)
+
+```
+
+## Remove outlier reaction times (not subjects)
+```{r outliers}
+tot_responses <- nrow(tidy_balanced)
+
+# Who has outlier response times? (i.e. response times that are too big)
+# in stage 3 and 5
+tidy_balanced %>%
+  filter(!grepl("stage[1,2,4]",trial)) %>%
+  arrange(subject_id) %>%
+  group_by(subject_id) %>%
+  filter(response > 10)
+# There are 14 outlier response times.
+
+# And there are 1920 total observations
+tidy_balanced %>%
+  filter(!grepl("stage[1,2,4]",trial)) %>%
+  nrow()
+
+# Remove outliers
+no_outliers <- tidy_balanced %>%
+  group_by(subject_id) %>%
+  filter(response < 10)
+
+# We don't need to remove anyone for cheating by clicking without reading
+# Greenwald only recommends removing data for participants where more than
+# 10% of subject response times are under 300 milliseconds. We have no such
+# subjects.
+no_outliers %>%
+  group_by(subject_id) %>%
+  filter(response < .3) %>%
+  count()
+
+```
+## Feature Engineering: IAT Scores
+```{r calculate_iat_scores}
+# remove stages 1,2,4
+df <- no_outliers %>%
+  filter(!grepl("stage[1,2,4]",trial)) %>%
+  arrange(subject_id)
+
+
+# determine each subject's mean response time for
+# stage 3 (male_leader) and 5 (female_leader)
+mean_response <- df %>% 
+  mutate(male_leader = grepl("stage3",trial)) %>%
+  group_by(subject_id, factor, gender, time, cp, male_leader) %>%
+  summarise(mean = mean(response)) %>%
+  spread(key = male_leader, value = mean) %>%
+  rename(stage3_mean = 'TRUE', stage5_mean = 'FALSE')
+
+
+# calculate iat score, which is the difference of mean response times for stage 3 & 5
+# divided by standard deviation of response times across both stages for that person
+iat_df <- df %>% 
+  group_by(subject_id) %>%
+  summarise(sd = sd(response)) %>%
+  right_join(mean_response) %>%
+  mutate(diff = (stage5_mean - stage3_mean)) %>%
+  mutate(iat_d = diff/sd) %>%
+  select(-sd, sd) %>%
+  mutate(time = chron(times = time))
+
+# Add a binary feature for the factor. Helps for ANOVA.
+iat_df <- iat_df %>%
+  mutate(prodiversity = (factor %in% c(2,4))) %>%
+  mutate(antistereotype = (factor %in% c(3,4)))
+
+```
+
+# Write out csv & data table
+```{r output}
+write.csv(iat_df, file = './iat_scores.csv')
+
+pretty_table <- iat_df %>%
+  select(subject_id, time, gender, cp, prodiversity, antistereotype, iat_d) %>%
+  mutate(iat_d = round(iat_d,3))
+
+write.csv(pretty_table, file = './iat_scores_table.csv')
+
+```
+
+# Exploratory Analysis
+
+## Checking Greenwald's recommendation that we 
+
+```{r}
+# People with more variable reaction times tended  to have larger differences between stage 3 and 5
+cor(abs(iat_df$diff), iat_df$sd)
+```
+This confirms Greenwald's claim that there is great association between sd of reaction times and the absolute value of the difference in mean reaction times for stage 3 and 5.
+
+## Plot reaction times from stages 1 through 5
+```{r}
+# As we expect, reaction times jump up when a new stage begins.
+ggplot(no_outliers, aes(trial,response, group=time)) +
+  geom_point(alpha=.05, size=.01)+
+  geom_line(alpha=.1, size=.1)+
+  xlab("Trial")+ 
+  ylab("Response time in seconds") +
+  ggtitle("After removing outliers: Each subject's response time during the experiment")+
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+```
+
+
+# Blocking
+```{r}
+# Blocking by gender was a good call
+ggplot(iat_df) +
+  geom_point(aes(x=factor, y = iat_d, color = gender))
+iat_df
+```
+
+
+
+## Contrast: Treatments vs Control
+
+Let's examine the contrast for whether there was a difference in response between the control group and the treatment groups. This corresponds to the coefficient vector of (-3, -3, 1, 1, 1, 1, 1, 1). In that vector, the first two entries correspond to the two control groups (one per gender); the remaining four entries correspond to the remaining treatment / block combinations.
+
+```{r}
+iat_df %>%
+  group_by(factor, gender) %>%
+  summarise(mean(diff))
+```
+
+Thus, the unbiased estimate is $3*(.0421) -3*(.2727) + .1218 + .1884 - .2159 + .2474 + .1271 + .2801$, which equals 0.0571. We use MS residuals as an estimate for error, by multiplying it by:
+
+```{r}
+3*(.0421) -3*(.2727) + .1218 + .1884 - .2159 + .2474 + .1271 + .2801
+(-3)^2/6 + (-3)^2/6 + 1/6 + 1/6 + 1/6 + 1/6 + 1/6
+```
+
+
+Our t-statistic then is: 0.0571/sqrt(.1727 * 3.833333)
+
+```{r}
+0.0571/sqrt(.1691 * 3.833333)
+```
+
+```{r}
+(1-pt(.07, df = 48-6))*2
+```
+
+```{r}
+summary(aov(iat_d ~ prodiversity + antistereotype + prodiversity:antistereotype + gender, data = iat_df))
+
+```
+
+## ANOVA Assumptions:
+
+
+## Residual Check
+
+```{r fit_resid}
+# Fitted vs. Residual
+mod = aov(iat_d ~ prodiversity + antistereotype + gender, data = iat_df)
+
+fit_resid = tibble(f = fitted(mod), r = residuals(mod))
+
+fit_resid
+
+iat_df <- mutate(iat_df, factor = as.factor(factor))
+
+levels(iat_df$factor) <- c('Neither', 'Pro-diversity','Anti-stereotype','Both')
+ggplot(iat_df, aes(x=fit_resid$f, y=fit_resid$r)) + 
+  geom_jitter(width = 0.25,aes(color = gender, shape = factor)) + 
+  geom_hline(yintercept = 0, color='red') + 
+  ggtitle("Jittered Residuals against Fitted Values with Groups Labelled") + 
+  xlab("Fitted Values") + 
+  ylab("Residuals")+
+  labs(subtitle = "Figure 5")
+
+
+model.tables(mod)
+```
+
+### Independence
+```{r}
+# Is response time determined by when they took the IAT
+ggplot(iat_df, aes(x=time, y=fit_resid$r)) + 
+  geom_jitter(width = 0.25,aes(color = gender, shape = factor)) + 
+  ylab("Residuals") +
+  xlab("Time of Experiment") +
+  ggtitle('Did Time of Trial Affect Residual')+
+  scale_x_continuous(breaks = c(.5,.625, .75, .875), 
+                     labels = c('12 PM', '3 PM', '6 PM','9 PM'))
+```
+
+```{r}
+# Is response time determined by the computer on which they took the IAT
+ggplot(iat_df, aes(x=cp, y=fit_resid$r)) + 
+  geom_jitter(width = 0.25,aes(color = gender, shape = factor)) + 
+  ylab("Residuals") +
+  xlab("Computer") +
+  ggtitle('Did CP of Trial Affect Residual')
+```
+
+Neither assumption is violated.
