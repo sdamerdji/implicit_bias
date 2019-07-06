@@ -1,0 +1,42 @@
+Protocol
+================
+Salim Damerdji
+
+Prior to using this protocol, the experimenter should already have R, Python, and the IAT GUI downloaded. Also, the experimenter should have decided on a sample size n (which must be a multiple of 8 to yield a balanced dataset) and have access to n volunteers.
+
+**Note:** The instructions below are maximalist in nature so that the experiment is conducted the same way no matter who runs it or when. This prevents any systematic unplanned variability from potentially biasing the results.
+
+### How to Run the Experiment
+
+1.  In R, run the command sample(rep(1:4, n/8)), where n is the total sample size. You'll get a list of size n/2 where each number indicates which of the four treatments to administer to a given subject. Write down this result. Call this result the male treatment order.
+
+2.  Repeat step 1, but call this result the female treatment order.
+
+3.  After a person agrees to be a subject for the experiment, cross off the first remaining treatment on the relevant treatment order list.
+
+4.  If more than N/2 people of that gender have already taken the experiment, turn the person away.
+
+5.  If the subject is male,
+    -   Look at the first integer that isn't crossed off in the male treatment order. This integer corresponds to the treatment to apply. Remember this for step 6.
+    -   Cross off the top integer in the male treatment order, so you don't accidentally lose track of which treatment to apply.
+6.  If the subject is female, perform step 4a and 4b using the female treatment order.
+
+7.  In the terminal on your computer
+    -   Navigate to the folder containing pc\_iat.py or mac\_iat.py, depending on which computer you use.
+    -   Type 'python pc\_iat.py' or 'python3 pc\_iat.py'
+    -   Maximize the window of the GUI that pops up
+8.  Without the subject seeing, input the integer that corresponds to the subject's treatment from the male or female treatment order.
+
+9.  Close all other windows and applications on your computer.
+
+10. Tell the subject that the entire experiment will be conducted on the computer program, that all the instructions will be displayed through the computer program, and that they should only communicate with you if the computer or the program malfunctions.
+
+11. Let the person complete the tasks as prompted by the program. This should take about 4 minutes.
+
+12. Repeat steps 3 through 8 until n subjects are processed.
+
+13. The computer program will have output one csv file in the folder containing the IAT GUI. The csv file has columns for the treatment applied, the subject's gender, the responses measured, and the start time for each experimental run.
+
+\*\* Ammendum \*\*
+
+If you use multiple computers to run the experiment, modify the above instructions by randomizing which open computer a subject uses to take the test. Also, give the resulting csv file a name that indicates which laptop was used for the experiment.
