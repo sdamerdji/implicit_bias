@@ -106,7 +106,7 @@ Transform dataframe so every row is an observation (a reaction time) and every c
 
 ##### Exploration of Outliers
 
-Greenwald et al's meta-analysis recommends IAT studies defines outliers as reaction times that last longer than 10 seconds.
+Greenwald et al's meta-analysis recommends that studies with IAT data define outliers as reaction times that last longer than 10 seconds.
 
 ``` r
 tidy_balanced %>%
@@ -134,7 +134,7 @@ tidy_balanced %>%
     ## 13         25     1 12:47:01         4 Male   stage5_3      11.3
     ## 14         47     1 22:33:35         2 Male   stage5_4      12.1
 
-By this metric, there are 14 outlier response times to remove. These reaction times are so slow they indicate the subject was significantly distracted, attempted to get clarification on instructions, or did something else anamolous. Outlier removal filters out this noise.
+By this metric, there are 14 outlier response times to remove. These reaction times are so slow they indicate the subject was significantly distracted, attempted to get clarification on instructions, or did something else anamolous. This data tells us nothing about implicit association, so outlier removal filters out this noise.
 
 ``` r
 tidy_balanced %>%
