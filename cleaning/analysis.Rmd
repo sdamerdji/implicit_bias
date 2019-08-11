@@ -1,0 +1,154 @@
+---
+title: "Modelling Data"
+author: "Salim Damerdji"
+output: rmarkdown::github_document
+---
+
+```{r}
+ iat_df <- read.csv('../data/clean/iat_scores.csv') %>%
+    as_tibble()
+```
+
+# Power Analysis
+
+Specify a minimum difference of 1%
+```{r}
+quantile(iat_df$diff, c(.5,.55))
+var(iat_df$diff)
+```
+
+```{r}
+get_power <- function(n){
+  df1 <- 3
+  df2 <- 4*n-6
+  ncp <- (n*.15^2)/(2*.10^2)
+  cutoff <- qf(p=.95,df1=df1, df2=df2)
+  return(pf(q=cutoff,df1=df1, df2=df2, ncp=ncp, lower.tail=FALSE))
+}
+
+powers <- sapply(6:30, get_power)
+ggplot()+
+  geom_line(aes(x=6:30, y=powers))+
+  xlab('# Observations per Subgroup')+
+  ylab('Power')+
+  ggtitle('Power Analysis for Hypothesis that Any Two Treatment Groups Differ by D') +
+  geom_vline(xintercept=12, color = 'dark green') +
+  annotate('text',14.5,.84,label='n=12, power=.85')
+```
+# Exploratory Analysis
+
+## Checking Greenwald's recommendation that we divide IAT score by pooled sd
+
+```{r}
+# People with more variable reaction times tended  to have larger differences between stage 3 and 5
+cor(abs(iat_df$diff), iat_df$sd)
+```
+This confirms Greenwald's claim that there is a strong relationship between sd of reaction times and the absolute value of the difference in mean reaction times for stage 3 and 5.
+
+## Plot reaction times from stages 1 through 5
+```{r}
+# As we expect, reaction times jump up when a new stage begins.
+ggplot(no_outliers, aes(trial,response, group=time)) +
+  geom_point(alpha=.05, size=.01)+
+  geom_line(alpha=.1, size=.1)+
+  xlab("Trial")+ 
+  ylab("Response time in seconds") +
+  ggtitle("After removing outliers: Each subject's response time during the experiment")+
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+```
+
+
+# Blocking
+```{r}
+# Blocking by gender was a good call
+ggplot(iat_df) +
+  geom_point(aes(x=factor, y = iat_d, color = gender))
+iat_df
+```
+
+
+
+## Contrast: Treatments vs Control
+
+Let's examine the contrast for whether there was a difference in response between the control group and the treatment groups. This corresponds to the coefficient vector of (-3, -3, 1, 1, 1, 1, 1, 1). In that vector, the first two entries correspond to the two control groups (one per gender); the remaining four entries correspond to the remaining treatment / block combinations.
+
+```{r}
+iat_df %>%
+  group_by(factor, gender) %>%
+  summarise(mean(diff))
+```
+
+Thus, the unbiased estimate is $3*(.0421) -3*(.2727) + .1218 + .1884 - .2159 + .2474 + .1271 + .2801$, which equals 0.0571. We use MS residuals as an estimate for error, by multiplying it by:
+
+```{r}
+3*(.0421) -3*(.2727) + .1218 + .1884 - .2159 + .2474 + .1271 + .2801
+(-3)^2/6 + (-3)^2/6 + 1/6 + 1/6 + 1/6 + 1/6 + 1/6
+```
+
+
+Our t-statistic then is: 0.0571/sqrt(.1727 * 3.833333)
+
+```{r}
+0.0571/sqrt(.1691 * 3.833333)
+```
+
+```{r}
+(1-pt(.07, df = 48-6))*2
+```
+
+```{r}
+summary(aov(iat_d ~ prodiversity + antistereotype + prodiversity:antistereotype + gender, data = iat_df))
+
+```
+
+## ANOVA Assumptions:
+
+
+## Residual Check
+
+```{r fit_resid}
+# Fitted vs. Residual
+mod = aov(iat_d ~ prodiversity + antistereotype + gender, data = iat_df)
+
+fit_resid = tibble(f = fitted(mod), r = residuals(mod))
+
+fit_resid
+
+iat_df <- mutate(iat_df, factor = as.factor(factor))
+
+levels(iat_df$factor) <- c('Neither', 'Pro-diversity','Anti-stereotype','Both')
+ggplot(iat_df, aes(x=fit_resid$f, y=fit_resid$r)) + 
+  geom_jitter(width = 0.25,aes(color = gender, shape = factor)) + 
+  geom_hline(yintercept = 0, color='red') + 
+  ggtitle("Jittered Residuals against Fitted Values with Groups Labelled") + 
+  xlab("Fitted Values") + 
+  ylab("Residuals")+
+  labs(subtitle = "Figure 5")
+
+
+model.tables(mod)
+```
+
+### Independence
+```{r}
+# Is response time determined by when they took the IAT
+ggplot(iat_df, aes(x=time, y=fit_resid$r)) + 
+  geom_jitter(width = 0.25,aes(color = gender, shape = factor)) + 
+  ylab("Residuals") +
+  xlab("Time of Experiment") +
+  ggtitle('Did Time of Trial Affect Residual')+
+  scale_x_continuous(breaks = c(.5,.625, .75, .875), 
+                     labels = c('12 PM', '3 PM', '6 PM','9 PM'))
+```
+
+```{r}
+# Is response time determined by the computer on which they took the IAT
+ggplot(iat_df, aes(x=cp, y=fit_resid$r)) + 
+  geom_jitter(width = 0.25,aes(color = gender, shape = factor)) + 
+  ylab("Residuals") +
+  xlab("Computer") +
+  ggtitle('Did CP of Trial Affect Residual')
+```
+
+Neither assumption is violated.

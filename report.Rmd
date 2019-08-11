@@ -3,7 +3,21 @@ title: "The Resiliency of Gendered Associations about Leadership"
 output: rmarkdown::github_document
 ---
 
+```{r, include=F}
+require(tidyverse)
+require(lubridate)
+require(chron)
+```
 Write-up by Salim Damerdji. Experiment conducted by Salim Damerdji, Roberto Lievana, and Aditya Jhanwar in 2019.
+
+```{r, echo=F}
+iat_df <- read.csv('./data/clean/iat_scores.csv') %>%
+  as_tibble() %>%
+  mutate(time = chron(times = time)) %>%
+  mutate(factor = as.factor(factor))
+
+levels(iat_df$factor) <- c('Read Neither Argument', 'Read Pro-diversity Argument','Read Anti-stereotype Argument','Read Both Arguments')
+```
 
 # Introduction
 
@@ -11,11 +25,11 @@ In the US, women hold far fewer elite leadership positions than men. As of 2019,
 
 Unsurprisingly, leadership is associated with masculine-coded traits, such as being tough and commanding[^3]. This association itself makes it harder for women to succeed in leadership positions[^3] [^4].
 
-We ran an experiment to test the resiliency of these gendered associations. We find evidence that people will associate men with leadership all the same even after reading arguments that this association is bad.
+We ran an experiment to test the resiliency of these gendered associations. We find evidence that people will associate leadership with men all the same even after reading arguments that advise the contrary.
 
 # Methodology
 
-For our study, we recruited 48 volunteers, all of whom were STEM undergraduate or graduate students at UC Berkeley. Of our 48 volunteers, we had 24 female participants and 24 male participants. We asked participants in the treatment groups to read an argument about women leadership. Afterwards, each participant took an Implicit Association Test (IAT).
+For our study, we recruited 48 volunteers, all of whom were STEM undergraduate or graduate students at UC Berkeley. Of our 48 volunteers, we had 24 female participants and 24 male participants. We asked participants in the treatment groups to read an argument about women and leadership. Afterwards, each participant took an Implicit Association Test (IAT).
 
 ## Treatment and Control Groups
 
@@ -25,7 +39,7 @@ Here is the pro-diversity argument: 'The University of California-Davis reported
 
 Here is the anti-stereotype argument: 'We often think of leaders as dominant and ambitious-as embodying qualities that closely match the stereotype of men. On the other hand, the traits that make up the feminine stereotype (e.g., friendliness and sensitivity) are seen as less vital to leadership. These stereotypes result in women being evaluated less positively than men for leadership positions' [^7][^8].
 
-We chose to study these two arguments because they are both archetypal: the pro-diversity argument is archetypal of a business-oriented argument that sells diversity as a route to organizational success; the second argument is, in contrast, archetypal of a social-justice-oriented argument that focuses on existing harmful stereotypes. Due to how common both of these types of arguments are, we chose to study them.
+We chose to study these two arguments because they are both archetypal: the pro-diversity argument is archetypal of a business-oriented argument that sells diversity as a route to organizational success; the second argument is, in contrast, archetypal of a social-justice-oriented argument that focuses on existing harmful stereotypes. We chose to study these arguments due to how common these types of arguments are.
 
 Experimental subjects received one of four treatment combinations: prior to taking the IAT, the subject either read nothing, read only the pro-diversity argument, read only the anti-stereotype argument, or read both.
 
@@ -33,160 +47,235 @@ Participants in the control group read nothing prior to taking the IAT.
 
 ## Blocking
 
-We blocked by gender because we thought it a good bet that women internalized stereotypes about women differently than men internalized those stereotypes. Blocking by gender converts this unplanned systematic variability into planned variability, reducing noise and increasing statistical power. In the results section, we show this strategy was well-advised.
+We thought it a good bet that women internalized stereotypes about women differently than men internalized those stereotypes. Blocking by gender converts this unplanned systematic variability into planned variability, reducing noise and increasing statistical power. In the results section, we show this strategy was well-advised.
 
-## Power - UPDATE
+## Power Analysis
 
-For logistical feasibility, we looked for the lowest sample size n that yields a balanced dataset and yields a power of at least 0.8.
+Prior to running our experiment, we looked for the smallest sample size n that yields a power of at least 0.8.
 
-In our power analysis, we used .14 as an estimate for variance, per dry run data. We assumed error variance would be the same for both genders. Based on our dry run data, we thought .05 would be the smallest IAT score differential that would be practically meaningful. At an alpha level of .05, the plot below shows a single factor's resulting power curve, as a function of the number of individuals per treatment / block combination.
+In our power analysis, we used .10 as an estimate for variance, per dry run data. We assumed error variance would be the same for both genders. Based on our dry run data, we thought a difference D = .1 would be the smallest IAT score differential that would be practically meaningful. 
+
+We also planned to conduct three statistical tests, and included controls for multiple testing into our power analysis. At a family-wise error rate of .05, the plot below shows the power curve for an alternative hypothesis that one condition of interest - whether it be gender, the pro-diversity argument, or the anti-stereotype argument - had an effect size of D.
+
+```{r, echo=F}
+get_power <- function(n, n_tests=3, var_estimate=.1, diff_D=.1){
+  df1 <- 1
+  df2 <- n - 4
+  ncp <- (n/2*diff_D^2)/(2*var_estimate^2)
+  alpha <- .05/n_tests # Bonferonni
+  critical_value <- qf(p=1-alpha, df1=df1, df2=df2)
+  return(pf(q=critical_value,df1=df1, df2=df2, ncp=ncp, lower.tail=FALSE))
+}
+powers <- sapply(5:70, get_power)
+ggplot()+
+  geom_line(aes(x=5:70, y=powers))+
+  xlab('Total Sample Size')+
+  ylab('Power')+
+  ggtitle('Power Analysis for Finding An Effect of Size D') +
+  geom_vline(xintercept=48, linetype='dashed', color = 'green') +
+  annotate('text',55,.8,label='n=48, power=.83')
+```
+
+With 48 subjects total, we expected our experiment to have .83 power. Put informally, we have an 83% chance of reporting a positive finding if there is, in fact, a practically significant effect to find.
+
 
 ## Measurement
 
+We use an Implicit Association Test (IAT) to measure how strongly a subject associates each gender with leadership. IATs offer an indirect measure of how strongly someone associates two concepts. Our IAT is an abridged modification of Harvard's IAT. This tool has been well-studied by a large literature base [^5]. We use the IAT because, unlike self-reporting, IATs measure unconscious associations and biases that people would not admit to having.
 
-We use an Implicit Association Test (IAT) to measure how strongly a subject associates each gender with leadership. An IAT offers an indirect measure the strength of a person's automatic association of two concepts. We implemented an IAT that is an abridged modification of Harvard's IAT. This tool has been well-studied by a large literature base that has thoroughly explored best practices for using an IAT [^5]. 
+To measure the response, we gave participants an abbreviated IAT that consisted of five stages. In each stage, the subject is asked to press 'e' for group of stimuli and press 'i' for another. They're described in the table below.
 
-One advantage is that unlike self-reporting, an IAT can measure unconscious associations or biases that people would not admit to having. The main shortcoming is that IAT scores are quite noisey. Despite this, there are few other available tools for measi Nevertheless, they're one of the few existing tools for social science research when it comes to taboo associations.
+Stage   Press 'e'                         Press 'i'
+------  --------                          ---------
+1       Male names                        Female names
+2       Types of leaders                  Types of supporters
+3       Male names OR types of leaders    Female names OR types of supporters
+4       Types of supporters               Types of leaders
+5       Male names OR types of supporters Female names OR types of leaders
 
-To measure the response, we gave participants an abbreviated IAT that consisted of five stages. In stage one, subjects press 'e' for male names and one key for female names. In stage two, it is similar, but for words that are categorized as related to leaders or supporters. In stage three, subjects press 'e' for male names or leader-related words, and 'i' for female names or supporter-related words. In stage four, subjects press 'e' for supporter-related words, and 'i' for leader-related words. In stage five, subjects press 'e' for male or supporter-related words, and 'i' for leader-related words or female names.
+Our computer program tracks the delay between when a particular stimulus (e.g. when the name 'Joe') is displayed on the center of the screen, and when the subject presses the appropriate key on the keyboard (e.g. 'e'). This delay is measured in seconds, with precision up to the the tenth of a millisecond. 
 
-Our computer program tracks the delay between when a particular stimulus (e.g. the name 'Joe') is displayed on the center of the screen, and when the subject presses the appropriate key on the keyboard (e.g. 'e'). A screenshot of this setup is displayed in figure 2. This delay is measured in seconds and is rounded to the 5th decimal place. Thus, our measurements are accurate up to the the tenth of a millisecond. 
-
-Only the reaction times for stages 3 and 5 are relevant for the response. For those stages, we remove all reaction times longer than 10 seconds, as is standardly practiced in the IAT literature (Flint et al. 2013). These extremely slow responses are indications that participants became distracted or needed clarifications on the instructions. These outliers account for 0.72% of measured reaction times for stage 3 and 5. (That is 14 of 1920 measurements.) 
-
-From the remaining reaction times for stage 3 and 5, we subtract the average reaction times stage 3 from that of stage 5. We then divide this difference by the standard deviation for the reaction times across stage 3 and 5. We do this following the lead of experts who argue that "magnitudes of differences between experimental treatment means are often correlated with variability of the data from which the means are computed" (Greenwald et al. 2003). In our dataset, we found a large association of r = .54 between these the magnitude of differences and the variability of the data. This adjustment makes sense since we want our IAT score to be valid and reflect the signal of implicit bias, not the noise of variability in response times.
-
-In short, our response of interest, the IAT score, is the mean reaction time for stage 3 minus the mean reaction time for stage 5, divided by the standard deviation of reaction times for those two stages. The basic intuition is that if subjects have quicker reaction times for stage 3 than for stage 5, then it's easier for the subject to mentally associate male names and leadership stimuli than female names and leadership stimuli. A large, positive IAT score indicates greater levels of implicit bias.
-
-## Protocol
-
-We performed complete randomization within each block. To assign treatments to subjects, we generated two lists where each of the four treatment combinations were listed four times. Both of these lists were randomly rearranged in R. We used the first list to assign treatment combinations to males as they volunteered to participate, and we used the second list for females.
-
-As subjects arrived for the experiment, we used R to randomly assign them to one of the available computers. On that computer, we opened the IAT computer program we coded. Then we input the correct factor combination for that subject, without allowing the subject to see the treatments being assigned. We instructed subjects that all instructions were delivered by the computer program.
-
-The computer program displayed the arguments, if any, that the subject was asked to read. If the subject was assigned to read both arguments, the program, in effect, flipped a coin to decide which to display first. Furthermore, for each stage of the IAT, we randomly order the possible stimuli to display on the screen. We perform these randomizations as insurance against unknown systematic bias, not because we suspected they would bias our results. 
+Our response of interest, the IAT score, is the mean reaction time for stage 3 minus the mean reaction time for stage 5, divided by the standard deviation of reaction times for those two stages [^9]. The basic intuition is that if subjects have quicker reaction times for stage 3 than for stage 5, then it's easier for the subject to mentally associate male names with leadership stimuli than it is for them to associate female names with leadership stimuli. A large, positive IAT score indicates stronger implicit associations of men with leadership.
 
 ## Validity
 
-Like many other analyses of complicated human responses, it's difficult to study implicit bias with a single measure. There are limitations to the response we have chosen.
+#### Internal Validity
+In virtue of being a concealed human attitude, implicit bias is difficult to study, so there are limitations to IAT scores. IAT scores are merely proxies for implicit bias. Although all measures of human attitudes are based on indirect measures - including self-reporting or behavior - it is fair to ask whether high IAT scores actually correlate with implicit bias.
 
-First, IAT scores are merely proxies for implicit bias. Virtually all measures of human attitudes are based on indirect measures - including self-reporting or behavior - and our proxy is likewise indirect. Thus, it is a fair question whether high IAT scores are relevant indications of implicit bias.
+A 2009 meta-study by Greenwald et al. found that, across 122 studies and 14,900 subjects, IAT scores positively correlated with "a wide range of criterion measures, from interracial friendliness and impression formation to anxious and shy behaviors, consumer choices, and voting," with an average pearson coefficient of .274 [^11]. These findings held up across a wide array of IATs, including IATs that measure implicit gender bias.
 
-A 2009 meta-study by Greenwald et al. found that, across 122 studies and 14,900 subjects, IAT scores positively correlated with "a wide range of criterion measures, from interracial friendliness and impression formation to anxious and shy behaviors, consumer choices, and voting," with an average pearson coefficient of .274. These findings held up across a plethora of different types of IATs, including IATs designed to test implicit gender bias.
+A correlation coefficient of .274 is not high, but neither are correlation coefficients for other proxies for bias, including self-reporting (Greenwald et al. 2009). Moreover, IAT scores are more reliable than self-reporting for socially sensitive topics [^11]. That's because IAT scores can capture implicit biases that subjects may be unconscious of or unwilling to report on a survey.
 
-A correlation coefficient of .274 is not high, but neither are correlation coefficients for other proxies for bias, including self-reporting (Greenwald et al. 2009). Moreover, IAT scores are more reliable than self-reporting for socially sensitive topics (Greenwald et al. 2009). That's because IAT scores can capture implicit biases that subjects may be unconscious of or unwilling to report on a survey.
+#### External Validity
 
-Second, our results are limited in that they only measure the marginal effect of hearing the pro-diversity or anti-stereotype argument one time. It's entirely possible - indeed, likely - that our participants, UC Berkeley students, have heard arguments similar to the pro-diversity or anti-stereotype argument before. Thus, we are not able to study the effect of hearing these arguments repeatedly or, even, for the very first time. 
+Our results are limited in that they only measure the marginal effect of hearing the pro-diversity or anti-stereotype argument one time. It's entirely possible - indeed, likely - that our participants, UC Berkeley students, have heard arguments similar to the pro-diversity or anti-stereotype argument before. Thus, we are not able to study the effect of hearing these arguments for the first time. 
 
-Nevertheless, we believe it's still useful to study the marginal effect of these arguments. Given that arguments similar to the ones we study are fairly common, it's worth learning whether there are gains in gender diverse leadership to be made by repeating these arguments. Moreover, if we suppose that an argument's efficacy fades with time, then the marginal effect of these arguments can inform us about the argument's total effect.
+Nevertheless, we believe it's still useful to study the marginal effect of these arguments. Given that arguments similar to the ones we study are fairly common, it's worth learning whether there are gains in gender diverse leadership to be made by repeating these arguments to those who have already heard them.
 
-## Replicability
-
-The response in question is fairly reliable. Although there is noise in a person's reaction times, this noise is reduced by taking the average of repeated measurements. So even if a person does not react with the exact same speed across repeated trials, their average reaction time should be approximately similar when they take the the test under the same conditions.
-
-Helpfully, there is no measurement error because a computer can measure response times both accurately and precisely without the influence of human error. This helps improve the replicability of our response, reducing noise in our experiment.
-
-## Other Words of Caution
-
-First, we only measure short-term impacts on implicit bias. We had participants complete the IAT immediately after treatments were applied. Thus, our response could only measure impacts on implicit bias in the short-term. To many people, it is of greater interest whether these arguments impact implicit bias in the long-term. Due to practical limitations, we were not able to follow up with participants to study the effect of the treatment. Nevertheless, our results are still of interest in that we should not expect long-term effects unless there are short-term effects.
-
-Second, our experiment does not prove there exists implicit bias against female leadership. For all we can show, the IAT scores are inflated because participants struggled to adapt to using a new key to press for categorizing gendered names. To rectify this limitation, we would had to have randomized the stages of our IAT test such that stages 2 and 3 could be ordered after stages 4 and 5. Nevertheless, our experiment tests whether our treatments affect the relative levels of implicit bias, though we make no claims about the absolute levels of that bias.
-
-Third, UC Berkeley STEM students are not representative of the general population in America. While our motivation is related to larger trends in America, we of course also care about how Berkeley STEM students respond to the arguments we have studied. Furthermore, our experiment can help inform a larger project whereby other researchers study other subsets of the general population for the same phenomena, and a literature review could confirm or deny whether our findings hold generally.
-
-Fourth, the arguments we study are merely archetypes of the types of arguments we are interested in. However, our results cannot be quickly generalized to other arguments that are substantially different. For example, if we find a significant effect for the prodiversity argument, it may be due to the tone, the use of empirics, or the framing of the argument. Our study is not able to exactly discern these differences. Nevertheless, it is still a worthwhile to see whether this argument has a significant effect on implicit bias because it serves as an indication about the prospects of other similar arguments.
-
-## Data Table
-In the data table below, subject_id is a unique identifier for each participant, time refers to when the test was started, 'cp' denotes which of three computers the subject took the IAT on, 'prodiversity' is a column of booleans that indicate whether the subject read the prodiversity argument, 'anti-stereotype' is likewise a column of booleans that indicate whether the subject read the anti-stereotype argument, and 'iat' denotes the subject's IAT score.
+Second, UC Berkeley STEM students are not representative of the general population in America. That's not to say it's an uninteresting population: it's largely representative of the Silicon Valley tech force. Moreover, if our experiment is repeated for other subsets of the general population, a literature review could validate whether our findings generalize to the larger population.
 
 # Results
 
-## Checking Model Assumptions
+## Overview on Data
 
-Before conducting any analysis or exploring the data we first wanted to determine if the assumptions of a parametric model are met. Several assumptions for such a model we wanted to test were normally distributed and homoskedastic errors as well as constant effects and additivity.  
+We present the means of each treatment/block combination below:
+```{r}
+iat_df %>%
+  dplyr::group_by(factor, gender) %>%
+  summarise(mean_score = round(mean(iat_d), 2)) %>%
+  rename(Treatment=factor)
+```
 
-We created two interaction plots to better understand if an additive or interaction model would best suit our observed data. Figure 4 is a 2-way interaction plot that highlights the interaction effects of the factors of interest, whereas figure 5 is a 3-way interaction plot that accounts for the blocks of male and female genders. For added clarity in analysis, we included standard error bars to account for variability in the data to better gauge the plot.
+## Model
 
+Our model is:
 
-As we can see in both the 2-way and 3-way interaction plots, the 'lines' do not appear to be parallel. This was also the case for additional 2-way interaction models that were produced as well. However, when accounting for the variability of the data as displayed by the standard error bars we noticed that we did not have enough data to accurately determine whether there is in fact some sort of interaction prevalent. Hence, after careful analysis and observation of the plots we reasoned that we would assume an additive model as the noise in the 'lines' could perhaps be explained by the variability itself rather than through an interaction term. 
+$y_{ijkl} = \mu + \alpha_{i} + \beta_{j} + \gamma_{k} + \epsilon_{ijk}$
 
-We implemented a fitted versus residual plot as it serves as a robust method in examining several model assumptions such as constant variance and zero-mean errors. From observing the fitted versus residual plot that was produced given our data we found the errors to be fairly homoskedastic, which argued that the aforementioned assumptions were in fact met. In our judgment, this held true within blocks as well; although variance decreases among large fitted values for males, this coincides with fewer observations, so it is not strong evidence that any assumptions of ANOVA are violated. 
+where $\mu$ is the baseline IAT score, $\alpha_{i}$ is the effect of the $i^{th}$ level of the pro-diversity factor, \beta_{j} is the effect of the $j^{th}$ level of the anti-stereotype factor, $\gamma_{k}$ is the block effect, and $\epsilon_{ijk}$ is the experimental error. We assume the $\epsilon_{ijk}$ ~ N (0,2).      
 
-We also wanted to confirm that the errors are normally distributed as per another important assumption of the model and ANOVA analysis. We produced a Q-Qplot as it would best indicate a violation in the normality assumption.
+```{r}
+mod <- aov(iat_d ~ prodiversity + antistereotype + gender, data = iat_df)
+summary(mod)
+```
 
+Gender has a somewhat statistically significant effect. We use a Bonferroni correction for multiple-testing. We find gender has an effect that is statistically significant at a .10 Family-Wise Error Rate (FWER), but not at a .05 FWER. (A Family-Wise Error Rate is the probability of making a Type-I error across *any* of our four tests.) The split along gender is plotted below.
 
-The results produced showed that the errors are distributed fairly normally albeit with some noise present. However, there does not seem to be any outliers and seems like a satisfactory match for the assumption. We did try using transformations on the data to form much more stringently normally distributed data, which would lead to that much more of an effective and representative model, but ultimately were unsuccessful of finding any such transformation and we felt the results produced were satisfactory.
+```{r}
+ggplot(iat_df, aes(x=gender, y=iat_d, color=gender)) +
+  geom_violin(trim=F, show.legend=F) +
+  ggtitle('Men More Strongly Associate Leadership with Men') +
+  xlab('Gender') +
+  ylab('IAT Score') +
+  geom_dotplot(binaxis='y', stackdir='center', binwidth=.07, show.legend=F)
+```
 
-## Independence Assumption
+This suggests it was a good choice to block by gender: we would have had a less powerful experiment if we didn't plan for this systematic variance. 
 
-In addition to analyzing the standard model assumptions we also took a look at other aspects of the data for sources of bias and variability. Our experiment took place mainly during 10 AM - 2 PM, which was the assigned time for running our experiment. Since we were unable to recruit all subjects necessary for the experiment during the time, we gathered the remaining subjects necessary afterwards outside of lab hours. We were concerned of possibility of the times subjects performed the experiment having some effect with the response times. We also were concerned with which computer the IAT was taken on. Fortunately, neither plot suggests we violate the independence of errors assumption since the residuals all look quite similar.
+We estimate that being male increases one's IAT score by:
 
-## Parallel Dot Chart
+```{r, echo=F}
+round(coef(mod)[4],2)
+```
 
-As a means of viewing the entire data in a concise method, we produced a parallel dot chart. We observe in the figure below that subjects who identified as female seem to have higher response times in general compared to those who were male. This reaffirms the presence of variability in the responses for the different genders and that blocking was in fact an appropriate choice for our design of the experiment.
+This is practically significant. Recall that a larger, positive score indicates a stronger association of leadership with men. Below, the empirical distribution of IAT scores is displayed as a histogram. A red line indicates a +.30 effect of gender added to the median.
 
+```{r}
+mid <- median(iat_df$iat_d)
+ggplot(iat_df) +
+  geom_histogram(aes(iat_d), binwidth=.25) +
+  geom_vline(aes(xintercept=mid+.3), color='red') +
+  xlab('Score on IAT Test') +
+  ylab('Frequency') +
+  ggtitle("Gender's Effect Relative to Total Spread")
+```
 
+ A .30 effect from gender leads to a large offset relative to the total spread of IAT scores seen.
 
-ANOVA  
-Our model is  
-
-yijkl=i+j+k+ijkl
-
-Where i = 1, 2 and i is the Factor A "pro-diversity",  j = 1, 2 and  j  is the Blocking Factor "gender" , k = 1, 2  and k represents Factor B "anti-stereotype"; and  l = 1 .. 48  and ijkl  are the error terms. We assume the ijkl ~ N ( 0,2)       
-
-In addition we considered gender to be a fixed effect rather than a random effect. Gender is constant across individuals over time. To make it clear, any effects of being a male will not change over time. This means that gender has a fixed effect.   
-
-
-
-The only significant effect in our analysis corresponds to the blocking factor "gender" [F(1, 44) = 6.026, P<0.05] from Table 1. Most of the variance that was previously attributed to residuals has now been partitioned to the block effect. This was going to help us explain the differences between the different factors more profoundly, however, the two factors of interest showed minimal effect [F(1, 44) = 0.0072, P>0.05] and [F(1, 44) = 0.0315 , P>0.05] from Table 1. 
-
-
-Here is a table of estimated effects:
-
-## Effects of Blocking
-
-The blocking strategy in the experiment proved to be successful. Our suspicion, that baseline rates of implicit bias vary by gender was correct. The large variation between gender/blocks is clear with a F-ratio [F(1, 44) = 6.026, P<0.05] from our ANOVA analysis in Table 1. Blocking by gender enabled us to convert this unplanned systematic variability into planned variability which reduced the noise in our experiment and increased the power of our experiment. Any cause due to a difference in sex is taken into consideration by using gender as a blocking factor. 
-
-## Contrast
-
-Let's examine the contrast for whether there was a difference in response between the control group and the treatment groups. This corresponds to the coefficient vector of (-3, -3, 1, 1, 1, 1, 1, 1), where first two entries of the coefficient vector correspond to the two control groups (one per gender), and the last four entries correspond to the remaining treatment / block combinations. Our null hypothesis is that there is no difference between the control groups and treatment groups. Our alternative hypothesis is that there is some difference.
-
-The unbiased estimate of this linear combination is 0.0571. We use MS residuals as an estimate for error, by multiplying it by the square root of ??wi/ni., which is 3.8333.  
-
-Thus, our t-statistic is .0571 / sqrt(.1691*3.8333). This t-statistic has a p-value of 0.9445. Clearly, this is not statistically significant. So, we fail to reject the null that there is no difference between the control and treatment groups.
-
-
-## Results and Ideas For Future Research
-
-In short, gender appears to be predictive of IAT scores, but the arguments displayed did not have an effect. This is an interesting finding that we found surprising. It would be natural to assume that these arguments were suggestive enough to reduce implicit bias. Perhaps implicit bias is resilient, or these arguments were unconvincing, or some other possibility could explain this result.
-
-Due to this uncertainty, we believe this was merely a starting point for the many possibilities of these sorts experiment. An issue that was touched on earlier is that our experiment was limited to STEM students at UC Berkeley, which does not necessarily generalize well to the standard characteristics of males and females in the larger scope of the population. An adaption of this experiment in which one would source subjects more openly and not within a single cluster could lead to much more robust results. In addition, our main factors only accounted for different types of text whereas other forms of media could have different implications and effects on the response. With further resources and newfound experience in designing and analyzing an experiment, we suspect that we or even other individuals with more domain knowledge on the subject of the experiment could further expand on the what the motivation behind the experiment is.
+The other conditions of interest had no statistically significant effect on IAT scores.
 
 
+## Model Assumptions
+
+### Additivity vs Interaction
+
+The model above assumes there are additive effects. In other words, the model does not have terms explicitly capturing interactions between two treatments. 
+
+```{r, echo=F}
+
+se <- function(x){
+  return(sqrt(var(x)/length(x)))
+}
+
+two_way_interaction_plot <- function(factor1, factor2, response, factor2_name, xlab, title) {
+  means=by(response,list(factor1, factor2),mean)
+  ses=by(response,list(factor1, factor2), se)
+  interaction.plot(x.factor=factor1, trace.factor=factor2, response=response, ylim=c(-.2,.4), col=c('blue','red'), xlab=xlab, trace.label = factor2_name, ylab='Mean IAT Score')
+title(title, font=10)
+  for (i in 1:length(ses)){
+    index = i #
+    mean <- means[i]
+    se <- ses[i]
+    if (i <= 2) {
+      lines(c(i,i),c(mean-se,mean+se), col='blue', type='o', lty=5) 
+    } else {
+      lines(c(i%/%2,i%/%2),c(mean-se,mean+se), col='red', type='o', lty=5) 
+    }
+  }
+}
+
+with(iat_df, {
+  two_way_interaction_plot(prodiversity, gender, iat_d, 'Gender', 'Read Pro-Diversity Argument', 'Do Gender and the Pro-Diversity Argument Interact?')
+  two_way_interaction_plot(antistereotype, gender, iat_d, 'Gender', 'Read Anti-Stereotype Argument', 'Do Gender and the Anti-Stereotype Argument Interact?')
+  two_way_interaction_plot(prodiversity, antistereotype, iat_d, 'Anti-stereotype', 'Read Pro-Diversity Argument', 'Do the Anti-stereotype and Pro-Diversity Arguments Interact?')
+})
+
+```
+
+There's no clear evidence of an interaction effect. If there was an interaction effect, we'd expect to see line segments with very different slopes. But the line segments above are close to parallel. As the standard error bars indicate, natural variability in sampling can completely explain away any apparent differences of the effect of one factor given another. Thus, it's fair to make assume these treatment effecs are additive.
+
+### Errors
+
+We also have to verify the errors are homoscedastic, normally distributed, and iid. The plots below suggest the errors are homoscedastic because the variances of the residuals are roughly constant even within the most granular subgroups.
+
+```{r fit_resid, echo=F}
+fit_resid <- tibble(f = fitted(mod), r = residuals(mod))
+
+ggplot(iat_df, aes(x=fit_resid$f, y=fit_resid$r)) + 
+  geom_jitter(width = 0.05, aes(color = gender)) + 
+  geom_hline(yintercept = 0, color='red') + 
+  ggtitle("Jittered Residuals against Fitted Values") + 
+  xlab("Fitted Values") + 
+  ylab("Residuals")+
+  labs(subtitle = "Figure 5") +
+  facet_wrap(~factor)
+```
+
+Using a normal Q-Q Plot, we can see the residuals are distributed fairly normally. A perfectly normal distribution would be plotted as a straight line, and our distribution is quite close to that:
+
+```{r}
+qqnorm(fit_resid$r)
+```
+
+To check that errors are independent, I considered whether the time at which a subject took the IAT lead to some correlation amongst subsets of the residuals. 
+
+```{r, echo=F}
+# Is response time determined by when they took the IAT
+ggplot(iat_df, aes(x=time, y=fit_resid$r)) + 
+  geom_jitter(width = 0.25, aes(color=factor)) + 
+  ylab("Residuals") +
+  xlab("Time of Trial") +
+  ggtitle('Did Time of Trial Affect Residuals?')+
+  scale_x_continuous(breaks = c(.4, .6, .8, 1), 
+                     labels = c('11 AM', '2 PM', '6 PM', '10 PM'))
+```
+
+There are no glaring signs of serial dependence, but the three observations on the far right do have large, positive residuals. There are a few reasons to think this is not a serious issue.
+
+First, this apparent trend may be due to natural variability in the data: three data points may be suggestive, but are hardly conclusive. Furthermore, randomization protects against this variability by converting systematic unplanned variability into chance-like variability. As a result, if there is some weak serial dependence, it only marginally decreases power; it does not risk the validity of positive findings made. Finally, ANOVA inferences are fairly reliable 'when the departures from our assumptions are not too large' [^10]. That seems to be the case here.
+
+I also checked another potential issue for the independent errors assumption. The IAT was administered as a computer program on one of three computers. It's plausible the computer used had some systematic effect on the errors, so I checked for this in the residuals.
+
+```{r, echo=F}
+ggplot(iat_df, aes(x=as.factor(cp), y=fit_resid$r)) +
+  geom_jitter(width = 0.1,aes(color=factor)) + 
+  ylab("Residuals") +
+  xlab("Computer") +
+  ggtitle('Did Computer Used Affect Residuals?')
+```
+
+Based on the graph above, it does not seem that the computer on which participants took the test affected the residuals.
+
+Thus, all ANOVA assumptions hold to a reasonable degree for this dataset.
+
+## Conclusions
+
+We found some evidence that compared to women, men more strongly associate leadership with men. Moreover, there is a practically significant difference between the average man's association and the average woman's association of gender and leadership. Because this is a blocking effect, we cannot make any causal claim that the male gender per se causes this association. But the experiment does suggest that this correlation exists.
+
+We found no evidence that either the pro-diversity or anti-stereotype arguments had an effect on a reader's implicit association of men with leadership. This suggests that stereotypes regarding gender and leadership are resilient, at least with respect to two common arguments against them.
 
 
-## References
-Dasgupta, Nilanjana, and Anthony G. Greenwald. "On the Malleability of Automatic Attitudes: Combating Automatic Prejudice with Images of Admired and Disliked Individuals." Journal of Personality and Social Psychology, vol. 81, no. 5, 2001, pp. 800-814., doi:10.1037//0022-3514.81.5.800.
-Flint, Stuart W., et al. "Counter-Conditioning as an Intervention to Modify Anti-Fat Attitudes." Health Psychology Research, vol. 1, no. 2, 2013, p. 24., doi:10.4081/hpr.2013.738.
-Harvard, Project Implicit. https://implicit.harvard.edu/implicit/selectatest.html
-Page-Gould, Elizabeth, and Amanda Sharples. How to Avoid Picking Up Prejudice from the Media. Greater Good, 7 Sept. 2016, greatergood.berkeley.edu/article/item/how_to_avoid_picking_up_prejudice_from_media.
-Thomas, Breda, et al. Can Female Role Models Reduce the Gender Gap in Science? Evidence from Classroom Interventions in French High Schools. Working Paper. 2018.
-
-
- 
-
-Article on how to compute IAT score:
-https://faculty.washington.edu/agg/pdf/GB&N.JPSP.2003.pdf
-
-Article on external validity:
-http://www.people.fas.harvard.edu/~banaji/research/publications/articles/2009_Greenwald_JPSP.pdf
-
-Article on Women Leadership Gap 
-https://www.americanprogress.org/issues/women/reports/2018/11/20/461273/womens-leadership-gap-2/
- 
-Article Times 
-
-http://time.com/4064665/women-college-degree/
+# References
 
 [^1]: Mejia, Zameena. Just 24 Female CEOs Lead the Companies on the 2018 Fortune 500-Fewer than Last Year. CNBC, 21 May 2018, www.cnbc.com/2018/05/21/2018s-fortune-500-companies-have-just-24-female-ceos.html.
 [^2]: DeSilver, Drew. "A Record Number of Women Will Be Serving in the New Congress." Pew Research Center, Pew Research Center, 18 Dec. 2018, www.pewresearch.org/fact-tank/2018/12/18/record-number-women-in-congress/.
@@ -196,3 +285,6 @@ http://time.com/4064665/women-college-degree/
 [^6]: Lemke, Tim. "Do Companies With Female Executives Perform Better?" The Balance, The Balance, 1 Feb. 2019, www.thebalance.com/do-companies-with-female-executives-perform-better-4586443.
 [^7]: Prime, Jeanine. Women "Take Care," Men "Take Charge." Edited by Andrea Juncos and Kara Patterson, Catalyst, 2005, pp. 1-38, Women "Take Care," Men "Take Charge."
 [^8]: Although neither argument *explicitly* says that diversity is good or stereotypes are bad, it's convienent to use these descriptions as shorthand.
+[^9]: We divide the difference by the pooled standard deviation because the "magnitudes of differences between experimental treatment means are often correlated with variability of the data from which the means are computed" (Greenwald, et. al 2003). In our dataset, we found a large association of r = .54 between these the magnitude of differences and the variability of a person's reaction times. By dividing by the pooled standard deviation, IAT scores more closely track the signal of implicit associations, rather than the noise of variability in response times.
+[^10]: Oehlert, Gary W. A First Course in Design and Analysis of Experiments. Freeman, 2000.
+[^11]: Greenwald, Anthony G, et al. "Understanding and Using the Implicit Association Test: III. Meta-Analysis of Predictive Validity." PsycEXTRA Dataset, 2007, doi:10.1037/e633982013-155.
